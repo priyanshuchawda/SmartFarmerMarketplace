@@ -1,25 +1,33 @@
 import streamlit as st
 import pandas as pd
+from datetime import date
+from dotenv import load_dotenv # <-- NEW: Used to load the .env file
+import os
 
-# Import modular components and database functions
-from database.db_functions import init_db, get_data
-from components.home_page import show_home_page, show_db_check_page
+# Load environment variables from the .env file immediately
+load_dotenv()
+
+# ----------------------------------------
+# --- 0. MODULE IMPORTS ---
+# ----------------------------------------
+from database.db_functions import init_db, get_data, add_data 
+from components.home_page import render_home_page, render_db_check
 from components.tool_listings import render_tool_listing, render_tool_management
 from components.crop_listings import render_crop_listing, render_crop_management
 
 # ----------------------------------------
-# --- 0. INITIALIZATION ---
+# --- CONFIGURATION AND SETUP ---
 # ----------------------------------------
 
-# Run the database initialization function once when the app starts
+# 1. Database Initialization
 if 'db_initialized' not in st.session_state:
     init_db()
     st.session_state.db_initialized = True
 
-# 1. Page Config
+# 2. Page Config
 st.set_page_config(page_title="Smart Farmer Marketplace", page_icon="🌾", layout="wide")
 
-# 2. Custom CSS for styling
+# 3. Custom CSS for styling
 st.markdown(
     """
     <style>
@@ -49,9 +57,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 3. Persistent Database Loading (Loads data into session state on every run)
+# 4. Persistent Database Loading
 st.session_state.tools = get_data("tools")
 st.session_state.crops = get_data("crops")
+
 
 # ----------------------------------------
 # --- USER LOGIN (Simple Farmer Identification) ---
@@ -63,8 +72,9 @@ farmer_name = st.sidebar.text_input("Enter your name to manage listings", key="l
 if farmer_name:
     st.session_state.farmer_name = farmer_name
 
+
 # ----------------------------------------
-# --- MAIN APPLICATION LOGIC (Routing) ---
+# --- MAIN APPLICATION LOGIC ---
 # ----------------------------------------
 st.title("🌾 SMART FARMER MARKETPLACE")
 
@@ -79,38 +89,34 @@ menu = st.sidebar.radio(
     ["🏠 Home", "📝 New Listing", "🔍 View Listings & Manage", "💾 Database Check (Admin)"]
 )
 
+# ----------------------------------------
+# --- PAGE ROUTING ---
+# ----------------------------------------
 
 if menu == "🏠 Home":
-    show_home_page()
-
+    render_home_page()
+    
 elif menu == "📝 New Listing":
     st.header("✍️ Create a New Marketplace Listing")
     tab_tool, tab_crop = st.tabs(["🧰 List a Tool for Rent", "🌾 List a Crop for Sale"])
     
     with tab_tool:
-        # Call the dedicated tool listing function
         render_tool_listing(st.session_state.get("farmer_name", ""))
-    
     with tab_crop:
-        # Call the dedicated crop listing function
         render_crop_listing(st.session_state.get("farmer_name", ""))
 
 elif menu == "🔍 View Listings & Manage":
     st.header("🔍 All Active Listings & Management")
     tab1, tab2 = st.tabs(["🧰 Tools for Rent", "🌾 Crops for Sale"])
-    
-    # Tool Management Tab
+
     with tab1:
-        render_tool_management(st.session_state.tools, st.session_state.get("farmer_name"))
-        
-    # Crop Management Tab
+        render_tool_management(st.session_state.tools, st.session_state.get("farmer_name", None))
     with tab2:
-        render_crop_management(st.session_state.crops, st.session_state.get("farmer_name"))
+        render_crop_management(st.session_state.crops, st.session_state.get("farmer_name", None))
 
 elif menu == "💾 Database Check (Admin)":
-    # Call the dedicated database check function
-    show_db_check_page()
-
+    render_db_check()
+    
 # ----------------------------------------
 # --- FOOTER ---
 # ----------------------------------------
